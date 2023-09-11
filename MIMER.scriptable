@@ -1,1 +1,158 @@
+batterypower = 10 // in kW
+aggregator = 10 // in %
+BA = 5 // in %
+service = 10  // in %
+fee = aggregator+BA+service
+let up = await getSVK()
+let countertoday = 0
+let mine = ""
+let raw = ""
+let minemonth=""
+let rawmonth=""
+let hours=[]
+do{
+mine += up[countertoday]*((100-fee)/100)*batterypower+","
+raw += up[countertoday]*batterypower+","
+countertoday+=1
+hours = hours + countertoday+","
+}
+while (countertoday < 31)
+countertoday=1
+do{
+minemonth += up["Month"+countertoday]*((100-fee)/100)*batterypower/1000+","
+rawmonth += up["Month"+countertoday]*batterypower/1000+","
+countertoday+=1
+}
+while (countertoday < 12)
 
+days=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31]
+months='"Jan","Feb","Mars","April","Maj","Juni","Juli","Aug","Sep","Okt","Nov","Dec"'
+let graphtoday = "https://quickchart.io/chart?bkg=black&w=1500&h=600&c="
+graphtoday += encodeURI("{\
+  data: { \
+    labels: ["+days+"],\
+    datasets: [\
+    {\
+        data:["+mine+"],\
+        type:'bar',\
+        borderColor: 'lightgreen',\
+       borderWidth: 100, \
+      },\
+      {\
+        data:["+raw+"],\
+        type:'bar',\
+        borderColor: 'darkgreen',\
+        borderWidth: 100, \
+      },\
+    ]\
+  },\
+    options:\
+      {\
+        legend:\
+        {\
+          display:false\
+        },\
+        scales:\
+        {\
+          xAxes:[{offset:true,ticks:{fontSize:35,fontColor:'white'}}],\
+          yAxes:[{scaleLabel:{padding:{top:-10,bottom:-20},display:true,labelString:'kr',fontSize:40,fontColor:'white'},gridLines:{display:true,color:'white'},ticks:{beginAtZero:true,fontSize:45,fontColor:'white'}}]\
+        }\
+      }\
+}")
+
+let graphhistory = "https://quickchart.io/chart?bkg=black&w=1500&h=600&c="
+graphhistory += encodeURI("{\
+  data: { \
+    labels: ["+months+"],\
+    datasets: [\
+    {\
+        data:["+minemonth+"],\
+        type:'bar',\
+        borderColor: 'lightgreen',\
+       borderWidth: 100, \
+      },\
+      {\
+        data:["+rawmonth+"],\
+        type:'bar',\
+        borderColor: 'darkgreen',\
+        borderWidth: 100, \
+      },\
+    ]\
+  },\
+    options:\
+      {\
+        legend:\
+        {\
+          display:false\
+        },\
+        scales:\
+        {\
+          xAxes:[{offset:true,ticks:{fontSize:35,fontColor:'white'}}],\
+          yAxes:[{scaleLabel:{padding:{top:-10,bottom:-20},display:true,labelString:'kkr',fontSize:40,fontColor:'white'},gridLines:{display:true,color:'white'},ticks:{beginAtZero:true,fontSize:45,fontColor:'white'}}]\
+        }\
+      }\
+}")
+
+const GRAPH = await new Request(graphtoday).loadImage()
+const GRAPH2 = await new Request(graphhistory).loadImage()
+
+async function createWidget() {
+	
+  let listwidget = new ListWidget();
+  listwidget.backgroundColor = new Color("#000000");
+  
+  let head = listwidget.addStack()
+  head.addSpacer(0)
+  
+  let heading = head.addText("idag "+Math.round(up.Today*((100-fee)/100)*batterypower)+"/"+Math.round(up.Today*batterypower)+"kr "+batterypower+"kW avg. "+fee+"%");
+  
+  heading.centerAlignText()
+  heading.font = Font.lightSystemFont(14);
+  heading.textColor = new Color("#ffffff");
+
+  let stackGraph = listwidget.addStack()
+  let imgstack = stackGraph.addImage(GRAPH)
+  imgstack.centerAlignImage()
+  
+  let head2 = listwidget.addStack()
+  let heading2 = head2.addText("denna månad "+Math.round(up.month*((100-fee)/100)*batterypower)+"/"+Math.round(up.month*batterypower)+"kr "+batterypower+"kW avg. "+fee+"%");
+  
+  heading2.centerAlignText()
+  heading2.font = Font.lightSystemFont(14);
+  heading2.textColor = new Color("#ffffff");
+  let stackGraph2 = listwidget.addStack()
+  stackGraph2.topAlignContent()
+  stackGraph2.addSpacer()
+  
+  let imgstack2 = stackGraph2.addImage(GRAPH2)
+  imgstack2.centerAlignImage()
+  
+  let common2 = listwidget.addStack()
+  let tomorrowLow = common2.addStack();
+  
+  common2.addSpacer()
+  let tomorrowAvg= common2.addStack();
+
+  common2.addSpacer()
+  let tomorrowHigh = common2.addStack();
+
+  return listwidget;
+}
+
+async function getSVK() {
+  const url = "https://onedrive.live.com/download?resid=166CD41A7B4A5B5B%2173102&authkey=!AOOhKs5PfVupFFI"
+  const request = new Request(url);
+  const response = await request.loadJSON();
+  return response;
+
+}
+
+let widget = await createWidget();
+
+if ((config.rtunsInWidget)) {
+  Script.setWidget(widget);
+} else{
+  widget.presentLarge()
+}
+
+Script.complete();
